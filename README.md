@@ -1,5 +1,5 @@
 # PID-CNN: Pianist Identification Using Convolutional Neural Networks
-This repo presents the code implementation for the paper [Pianist Identification Using Convolutional Neural Networks](https://arxiv.org/abs/2306.06040)
+This repo presents the code implementation for the paper [Pianist Identification Using Convolutional Neural Networks](https://sample.url)
 
 ## Training
 The training was monitored by with [W&B](https://wandb.ai/tangjingjingbetsy/PID). Pre-trained models and artifacts could be downloaded though the given link to the project.
