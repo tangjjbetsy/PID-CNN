@@ -1,5 +1,5 @@
 # PID-CNN: Pianist Identification Using Convolutional Neural Networks
-This repo presents the code implementation for the paper [Pianist Identification Using Convolutional Neural Networks](https://sample.url)
+This repo presents the code implementation for the paper [Pianist Identification Using Convolutional Neural Networks](https://arxiv.org/abs/2310.00699)
 
 ## Training
 The training was monitored by with [W&B](https://wandb.ai/tangjingjingbetsy/PID). Pre-trained models and artifacts could be downloaded though the given link to the project.
@@ -23,6 +23,22 @@ We applied the [piano transcription algorithm](https://github.com/bytedance/pian
 
 ## Citation
 ```
+@ARTICLE{2023arXiv231000699T,
+       author = {{Tang}, Jingjing and {Wiggins}, Geraint and {Fazekas}, Gyorgy},
+        title = "{Pianist Identification Using Convolutional Neural Networks}",
+      journal = {arXiv e-prints},
+     keywords = {Computer Science - Sound, Electrical Engineering and Systems Science - Audio and Speech Processing},
+         year = 2023,
+        month = oct,
+          eid = {arXiv:2310.00699},
+        pages = {arXiv:2310.00699},
+          doi = {10.48550/arXiv.2310.00699},
+archivePrefix = {arXiv},
+       eprint = {2310.00699},
+ primaryClass = {cs.SD},
+       adsurl = {https://ui.adsabs.harvard.edu/abs/2023arXiv231000699T},
+      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
 ```
 ## Contact
 Jingjing Tang: jingjing.tang@qmul.ac.uk
