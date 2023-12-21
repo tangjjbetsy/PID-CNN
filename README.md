@@ -8,15 +8,16 @@ For re-training models, please contact me for the data and run the following com
 ```
 python main.py --cuda_devices YOUR_CUDA_DEVICES --mode train
 ```
+Checkpoints trained with different input lengths and number of features are available [here](https://drive.google.com/file/d/1QFzAN4cUYcbDY9yxJ-sVsB9nhdFTscwr/view?usp=sharing).
 
 ## Datasets
-In this study, we used piano MIDI performances from the [ATEPP](https://github.com/BetsyTang/ATEPP) dataset. However, we have also made attempts on this task with the following datasets:
+In this study, we used piano MIDI performances from the [ATEPP](https://github.com/tangjjbetsy/ATEPP) dataset. However, we have also made attempts on this task with the following datasets:
 
 ### Maestro-v3.0.0 with performer information
-The MAESTRO dataset does not provide information about performers for each performance. We complemented the name and nationality to the meta-data by crawling the website of the [International E-Piano Competition](https://www.piano-e-competition.com/default.asp) and manual verification. Results are provided [here](https://github.com/BetsyTang/PianistID/tree/master/data/data_maestro).
+The MAESTRO dataset does not provide information about performers for each performance. We complemented the name and nationality to the meta-data by crawling the website of the [International E-Piano Competition](https://www.piano-e-competition.com/default.asp) and manual verification. Results are provided [here](https://github.com/tangjjbetsy/PID-CNN/tree/master/data/data_maestro).
 
 ### CHARM Mazurka dataset with cleaned discography
-Around a hundred audio recordings were found wrongly labeled by the discography given in [MazurkaBL](https://github.com/katkost/MazurkaBL/blob/master/mazurka-discography.txt) during the research progress. By a cover song detection algorithm and manual verification, we created a clean version of the discography, provided [here](https://github.com/BetsyTang/PianistID/tree/master/data/data_mazurka). 
+Around a hundred audio recordings were found wrongly labeled by the discography given in [MazurkaBL](https://github.com/katkost/MazurkaBL/blob/master/mazurka-discography.txt) during the research progress. By a cover song detection algorithm and manual verification, we created a clean version of the discography, provided [here](https://github.com/tangjjbetsy/PID-CNN/tree/master/data/data_mazurka). 
 
 ### Transcribed Midis
 We applied the [piano transcription algorithm](https://github.com/bytedance/piano_transcription) by Kong et al. to both the datasets (cleaned version). The transicribed midis are available [here](https://drive.google.com/file/d/1NCA90J2-kT6-sOFo6_tYWZDDFTvjOznJ/view?usp=sharing).
