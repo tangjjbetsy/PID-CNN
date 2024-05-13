@@ -3,57 +3,23 @@ import math
 import collections
 import pandas as pd
 import numpy as np
-from regex import F
+
+from config import *
 from tqdm import tqdm
 from sklearn.model_selection import StratifiedShuffleSplit, train_test_split
-from pretty_midi import PrettyMIDI, Note, Instrument
+from pretty_midi import PrettyMIDI
 from decimal import Decimal
-
-
-MAX_LEN = 4000
-SLICE_LEN = 800
-SAVE_PATH = "test.npz"
-PATH = "/homes/jt004/PianistST-Transformer/gen_midis/08502_5_infer_corresp.txt"
-
-FEATURES_LIST = [
-                 'pitch', 
-                 'onset_time', 
-                 'offset_time',
-                 'velocity',
-                 'duration',
-                 'ioi',
-                 'otd',
-                 'onset_time_dev',
-                 'offset_time_dev',
-                 'velocity_dev',
-                 'duration_dev',
-                 'ioi_dev',
-                 'otd_dev'
-                 ]
 
 DEFAULT_VELOCITY_BINS = np.linspace(0,  128, 8+1, dtype=np.int32)
 BestQuantizationMatch = collections.namedtuple('BestQuantizationMatch',
     ['error', 'tick', 'match', 'signedError', 'divisor'])
-DEFAULT_LOADING_PROGRAMS = range(128)
-MIN_VELOCITY = 10
-
 
 class AlignDataProcessor:
     """
     Data preprocessing based on the alignment results obtained from Nakamura tools
     """
     def __init__(self, 
-                 path_to_dataset_csv, 
-                 path_to_save,
-                 data_folder=None, 
-                 align_result_column=None, 
-                 average_column=None,
-                 random_state=42,
-                 isAverage=False, 
-                 isSplits=False, 
-                 isSlice=False, 
-                 isFull=False, 
-                 isOverlap=False):
+                 args):
         """ Load the paths to data and split the dataset
 
         Args:
@@ -61,31 +27,25 @@ class AlignDataProcessor:
             path_to_save (str): path where we save the processed data
             data_folder (str, optional): path to folder of the alignment results. Defaults to None.
             align_result_column (str, optional): the column that specify the relative paths to alignment results. Defaults to None.
-            average_column (str, optional): the column that specify the relative paths to the average performances. Defaults to None.
-            isAverage (bool, optional): whether to calulate deviations from average performances. Defaults to False.
             isSplits (bool, optional): whether to split the datasets by range shuffling. Defaults to False.
             isSlice (bool, optional): whether to slice the music into segments. Defaults to False.
             isFull (bool, optional): whether to keep the full piece of the music. Defaults to False.
             isOverlap (bool, optional): whether to use overlap when creating segments. Defaults to False.
         """
         
-        self.df = pd.read_csv(path_to_dataset_csv, header=0)
-        self.isAverage = isAverage
-        self.isSlice = isSlice
-        self.isFull = isFull
-        self.isOverlap = isOverlap
-        self.savepath = path_to_save
-        self.random_state = random_state
+        self.df = pd.read_csv(args.path_to_dataset_csv, header=0)
+        self.isSlice = args.isSlice
+        self.isFull = args.isFull
+        self.isOverlap = args.isOverlap
+        self.savepath = args.path_to_save
+        self.random_state = args.random_state
+        self.max_len = args.max_len
+        self.slice_len = args.slice_len
                 
-        if isAverage:
-            self.df = self.df[self.df[average_column].isna() == False]
-            # Get absolute paths to the average performances
-            self.average_csvs = data_folder + self.df[average_column]
-        
         # Get absolute paths to the alignment results
-        self.align_files = data_folder + self.df[align_result_column]
+        self.align_files = args.data_folder + self.df[args.align_result_column]
                 
-        if isSplits:
+        if args.isSplits:
             self.df.loc[:, 'type'] = np.repeat(None, self.df.shape[0])
             all_keys = self.df['label'].unique().tolist()
 
@@ -152,32 +112,32 @@ class AlignDataProcessor:
         return target_list
 
     @staticmethod
-    def get_sliced_segments(seq, x, y, splits, row, isOverlap):
+    def get_sliced_segments(seq, x, y, splits, row, isOverlap, slice_len):
         """
-        Sliced the given sequence to the expected length SLICE_LEN with
+        Sliced the given sequence to the expected length slice_len with
         or without considering overlap
         """
         n = 0
         seq_len = len(seq)
         
-        if seq_len < SLICE_LEN:
-            x.append(AlignDataProcessor.pad_or_cut_sequence(seq, SLICE_LEN))
+        if seq_len < slice_len:
+            x.append(AlignDataProcessor.pad_or_cut_sequence(seq, slice_len))
 
         elif isOverlap:
             start_index = 0
-            while start_index + SLICE_LEN < seq_len - 1:
-                x.append(seq[start_index:start_index + SLICE_LEN])
+            while start_index + slice_len < seq_len - 1:
+                x.append(seq[start_index:start_index + slice_len])
                 overlap_length = np.random.randint(50, 100)
-                start_index += SLICE_LEN - overlap_length
+                start_index += slice_len - overlap_length
                 n += 1
-            x.append(AlignDataProcessor.pad_or_cut_sequence(seq[start_index:], SLICE_LEN))
+            x.append(AlignDataProcessor.pad_or_cut_sequence(seq[start_index:], slice_len))
         else:
             start_index = 0
-            while start_index + SLICE_LEN < seq_len - 1:
-                x.append(seq[start_index:start_index + SLICE_LEN])
-                start_index += SLICE_LEN
+            while start_index + slice_len < seq_len - 1:
+                x.append(seq[start_index:start_index + slice_len])
+                start_index += slice_len
                 n += 1
-            x.append(AlignDataProcessor.pad_or_cut_sequence(seq[start_index:], SLICE_LEN))
+            x.append(AlignDataProcessor.pad_or_cut_sequence(seq[start_index:], slice_len))
             
         y = AlignDataProcessor.add_to_list(row['artist_id'], n+1, y)
         splits = AlignDataProcessor.add_to_list(row['type'], n+1, splits)  
@@ -252,10 +212,7 @@ class AlignDataProcessor:
         self.composition_id = [self.cid for i in range(self.data.shape[0])]
         
         # Extract deviation features
-        if self.isAverage:
-            self._get_dev_features_from_average_performance()
-        else:
-            self._get_dev_features_from_alignment_result()
+        self._get_dev_features_from_alignment_result()
             
         feature_seqs = []
         for feature in feature_list:
@@ -317,26 +274,13 @@ class AlignDataProcessor:
         data = data[(data['refID']!= "*")&(data['alignID']!= "*")]
         data = data.astype({'refID':'int32'})
         
-        # Compute deviations from average performance
-        if self.isAverage:
-            self.average_df = pd.read_csv(path_to_averagefile, header=0)            
-            data = data[data['refID'].isin(self.average_df['refID'])]    
-            
-            # Remove notes that were aligned more than once
-            extra = data['refID'].value_counts().index[data['refID'].value_counts()>1]
-            if extra.shape[0] > 0:
-                for i in extra:
-                    idxs = data[data['refID'] == i].index.to_list()
-                    bad_idxs = idxs[1:]
-                    data = data.drop(bad_idxs)
-        
         # Calculate IOI and OTD
         data = self._compute_IOI(data, True)
         data = self._compute_OTD(data, True)
             
         self.data = data.sort_values('refID')
     
-    def process_one_piece(self, file_path, cid, max_len=MAX_LEN):
+    def process_one_piece(self, file_path, cid, max_len):
         self._load_performance(file_path)
         self.cid = cid
         
@@ -356,10 +300,7 @@ class AlignDataProcessor:
         splits = []
         
         for idx, row in tqdm(self.df.iterrows(), total=self.df.shape[0]):
-            if self.isAverage:
-                self._load_performance(self.align_files[idx], self.average_csvs[idx])
-            else:
-                self._load_performance(self.align_files[idx])
+            self._load_performance(self.align_files[idx])
             
             self.cid = self.df.composition_id[idx]
                 
@@ -367,7 +308,9 @@ class AlignDataProcessor:
             seq_len = len(seq)
             
             if self.isSlice:
-                x, y, splits = self.get_sliced_segments(seq, x, y, splits, row, self.isOverlap)
+                x, y, splits = self.get_sliced_segments(seq, x, y, splits, 
+                                                        row, self.isOverlap, 
+                                                        self.slice_len)
                 continue
                 
             if self.isFull:
@@ -377,7 +320,7 @@ class AlignDataProcessor:
                 splits.append(row['type'])
                 continue
             
-            x.append(self.pad_or_cut_sequence(seq, MAX_LEN))
+            x.append(self.pad_or_cut_sequence(seq, self.max_len))
             y.append(row['artist_id'])
             splits.append(row['type'])
             
@@ -391,20 +334,15 @@ class AlignDataProcessor:
         self.y = np.asarray(y)
         self.splits = np.asarray(splits)
         
-        print("Total performances:" + str(self.x.shape))
+        print("Total performances (in segments):" + str(self.x.shape))
         
-    def save(self, isTest=True):
+    def save(self):
         """
         Save the processed results
         """
         train_index = np.where(self.splits == "train")[0]
         valid_index = np.where(self.splits == "valid")[0]
-        
-        if isTest:
-            test_index = np.where(self.splits == "test")[0]
-        else:
-            test_index = valid_index[valid_index.shape[0]//2:]
-            valid_index = valid_index[0:valid_index.shape[0]//2]
+        test_index = np.where(self.splits == "test")[0]
         
         print("Training performances: %d" % self.x[train_index].shape[0])
         print("Validation performances: %d" % self.x[valid_index].shape[0])
@@ -426,30 +364,24 @@ class MidiDataProcessor:
     Data processing based on midi files
     """
     def __init__(self, 
-                 path_to_dataset_csv, 
-                 path_to_save,
-                 data_folder=None, 
-                 score_folder=None,
-                 midi_file_column=None,
-                 isQuantize=None,
-                 isSplits=True,
-                 isSlice=False, 
-                 isFull=False,
-                 isOverlap=False):
+                 args):
         
-        self.df = pd.read_csv(path_to_dataset_csv, header=0)
-        self.midi_files = data_folder + self.df[midi_file_column]
+        self.df = pd.read_csv(args.path_to_dataset_csv, header=0)
+        self.midi_files = args.data_folder + self.df[args.midi_file_column]
 
-        self.isQuantize = isQuantize
-        self.savepath = path_to_save
-        self.isSlice = isSlice
-        self.isFull = isFull
-        self.isOverlap = isOverlap
+        self.quantize = args.quantize
+        self.savepath = args.path_to_save
+        self.isSlice = args.isSlice
+        self.isFull = args.isFull
+        self.isOverlap = args.isOverlap
         
-        if isQuantize == "score":
-            self.score_files = score_folder + self.df[midi_file_column]
+        self.max_len = args.max_len
+        self.slice_len = args.slice_len
         
-        if isSplits:
+        if self.quantize == "score":
+            self.score_files = args.score_folder + self.df[args.midi_file_column]
+        
+        if args.isSplits:
             self.df.loc[:, 'type'] = np.repeat(None, self.df.shape[0])
             full_x = self.df.index.to_numpy()
             full_y = self.df['artist_id'].to_numpy()
@@ -614,7 +546,7 @@ class MidiDataProcessor:
         self.notes.sort(key=lambda note: note.start)
         self._adjust_time(-self.notes[0].start)
         
-        if self.isQuantize == "score":
+        if self.quantize == "score":
             midi = PrettyMIDI(path_to_scorefile)
             notes = itertools.chain(*[
             inst.notes for inst in midi.instruments
@@ -642,10 +574,10 @@ class MidiDataProcessor:
         self.ioi_dev = []
         self.otd_dev = []
         
-        if self.isQuantize == "group":
+        if self.quantize == "group":
             notes_q = self._time_quantize_by_group(self.notes)
         
-        if self.isQuantize == "score":
+        if self.quantize == "score":
             self.notes, self.notes_s = self._time_quantize_by_lele(self.notes, self.notes_s)
             
         
@@ -671,7 +603,7 @@ class MidiDataProcessor:
             self.otd.append(otd)
 
             
-            if self.isQuantize == "grid":
+            if self.quantize == "grid":
                 note_q = self._time_quantize_by_grid(note)
                 vel_q = self._velocity_quantize(note)
                 
@@ -694,7 +626,7 @@ class MidiDataProcessor:
                     otd_dev = otd - otd_q
                 self.otd_dev.append(otd_dev)
             
-            elif self.isQuantize == "group":
+            elif self.quantize == "group":
                 note_q = notes_q[i]
                 vel_q = self._velocity_quantize(note)
                 
@@ -717,7 +649,7 @@ class MidiDataProcessor:
                     otd_dev = otd - otd_q
                 self.otd_dev.append(otd_dev)
             
-            elif self.isQuantize == "score":
+            elif self.quantize == "score":
                 note_s = self.notes_s[i]
                 
                 self.onset_time_dev.append(note.start - note_s.start)
@@ -746,8 +678,8 @@ class MidiDataProcessor:
             feature_seqs.append(eval('self.' + feature))
         return np.stack(feature_seqs, axis=1)    
 
-    def process_one_piece(self, file_path, cid, score_path=None, max_len=MAX_LEN):
-        if self.isQuantize == "score":
+    def process_one_piece(self, file_path, cid, score_path=None):
+        if self.quantize == "score":
             self._load_performance(file_path, score_path)
         else:
             self._load_performance(file_path)
@@ -756,7 +688,7 @@ class MidiDataProcessor:
         seq = self._extract_features()
         seq_len = len(seq)
         
-        return AlignDataProcessor.pad_or_cut_sequence(seq, max_len)
+        return AlignDataProcessor.pad_or_cut_sequence(seq, self.max_len)
 
     def process(self):
         """
@@ -769,7 +701,7 @@ class MidiDataProcessor:
         
         for idx, row in tqdm(self.df.iterrows(), total=self.df.shape[0]):
             
-            if self.isQuantize == "score":
+            if self.quantize == "score":
                 try:
                     self._load_performance(self.midi_files[idx], self.score_files[idx])
                 except:
@@ -783,7 +715,8 @@ class MidiDataProcessor:
             
             if self.isSlice:
                 x, y, splits = AlignDataProcessor.get_sliced_segments(seq, x, y, splits, 
-                                                                      row, self.isOverlap)
+                                                                      row, self.isOverlap,
+                                                                      self.slice_len)
                 continue
                 
             if self.isFull:
@@ -793,7 +726,7 @@ class MidiDataProcessor:
                 splits.append(row['type'])
                 continue
             
-            x.append(AlignDataProcessor.pad_or_cut_sequence(seq, MAX_LEN))
+            x.append(AlignDataProcessor.pad_or_cut_sequence(seq, self.max_len))
             y.append(row['artist_id'])
             splits.append(row['type'])
             
@@ -809,17 +742,13 @@ class MidiDataProcessor:
         
         print("Total performances:" + str(self.x.shape))
     
-    def save(self, isTest=True):
+    def save(self):
         """
         Save the processed results
         """
         train_index = np.where(self.splits == "train")[0]
         valid_index = np.where(self.splits == "valid")[0]
-        
-        if isTest:
-            test_index = np.where(self.splits == "test")[0]
-        else:
-            test_index = np.where(self.splits == "valid")[0]
+        test_index = np.where(self.splits == "test")[0]
         
         print("Training performances: %d" % self.x[train_index].shape[0])
         print("Validation performances: %d" % self.x[valid_index].shape[0])
@@ -835,87 +764,43 @@ class MidiDataProcessor:
             test_y = self.y[test_index]     
         )
 
+
+import argparse
+
+def get_args():
+    parser = argparse.ArgumentParser(description="Argument Parser")
+    parser.add_argument("--path_to_dataset_csv", type=str, default="data/ID-1000.csv", help="Path to dataset CSV file")
+    parser.add_argument("--path_to_save", type=str, default="data/processed_data", help="Path to save processed data")
+    parser.add_argument("--data_folder", type=str, default="data/ATEPP-alignment/", help="Dictionary to the performances / alignment results")
+    parser.add_argument("--score_folder", type=str, default=None, help="Dictionary to the scores")
+    parser.add_argument("--align_result_column", type=str, default="align_file", help="Column to save the align result file paths")
+    parser.add_argument("--midi_file_column", type=str, default="midi_path", help="Column to save the midi performance file paths")
+    parser.add_argument("--random_state", "-r", type=int, default=42, help="Random state (default: 42)")
+    parser.add_argument("--isSplits", "-S", action="store_true", help="To split the data into train, valid, test sets")
+    parser.add_argument("--isSlice", "-s", action="store_true", help="To slice the performances into segments")
+    parser.add_argument("--isFull", "-f", action="store_true", help="To use the full performances as input")
+    parser.add_argument("--isOverlap", "-o", action="store_true", help="To insert overlap for segments")
+    parser.add_argument("--quantize", "-q", type=str, default=None, choices=["score", "group", "grid", None], help="To quantize the midi files")
+    parser.add_argument("--max_len", "-ml", type=int, default=8000, help="Maximum lengths for the input (even using the full performances)")
+    parser.add_argument("--slice_len", "-sl", type=int, default=400, help="Segment lengths for slicing")
+    parser.add_argument("--mode", type=str, choices=["midi", "align"], default="align", help="Whether to process midi files or alignment files")
+    
+    parser.print_help()
+    
+    args = parser.parse_args()
+    
+    return args
+
+
 if __name__ == "__main__":
-    # for i in range(5):
-    dataProcessor = AlignDataProcessor(
-                                #   "ATEPP-77perfs-6-refine.csv",
-                                "ATEPP-metadata-s2p_align.csv",
-                                # "ATEPP-id.csv",
-                                path_to_save="./processed_data/id_13_segment_800_4",
-                                # path_to_save="./processed_data/id_13_full_large_%d" % i,
-                                # data_folder="./id_aligned/",
-                                data_folder="./Syed_77perfs_6/",
-                                align_result_column="align_file",
-                                random_state=4,
-                                # align_result_column="score_align",
-                                # isFull=True,
-                                isSlice=True,
-                                isSplits=True,
-                                isOverlap=True
-                                )
-
-# dataProcessor = MidiDataProcessor(
-#                               "ATEPP-metadata-s2p.csv", 
-#                               path_to_save="processed_data/Syed_77perfs_13_cid_score",
-#                               data_folder="/import/c4dm-datasets/ATEPP/",
-#                               score_folder="/import/c4dm-04/jt004/ATEPP-data-exp/midi_scores_generated_scaled/",
-#                               midi_file_column="midi_path",
-#                               isSlice=True,
-#                               isSplits=True,
-#                               isQuantize="score"
-#                               )
-
+    args = get_args()
+    
+    print("\n----------------Start Processing--------------------")
+    if args.mode == "align":
+        dataProcessor = AlignDataProcessor(args)
+    else:
+        dataProcessor = MidiDataProcessor(args)
+        
     dataProcessor.process()
-    dataProcessor.save(isTest=True)
-    
-    # test_data = []
-    # label = []
-    # original = []
-    
-    # # cid_dir = {
-    # #     "A": 16,
-    # #     "B": 9,
-    # #     "C": 29,
-    # #     "D": 28
-    # # }
-    
-    # cid_dir = {
-    #     "A": 32,
-    #     "B": 13,
-    #     "C": 1,
-    #     "D": 3
-    # }
-    
-    # for piece in ["B"]:
-    #     for performer in range(6):
-    #         for target in range(6):
-    #             result = dataProcessor.process_one_piece(
-    #                 "/homes/jt004/PianistST-Transformer/gen_midis/" + "_".join([piece, str(performer), str(target)]) + ".mid",
-    #                 cid_dir[piece],
-    #                 "/homes/jt004/PianistST-Transformer/gen_midis/" + "_".join([piece, str(performer), str(target)]) + "_score.mid",  
-    #                  1000)
-                
-    #             # result = dataProcessor.process_one_piece(
-    #             #     "/homes/jt004/PianistST-Transformer/gen_midis/" + "_".join([piece, str(performer), str(target)]) + "_infer_corresp.txt",
-    #             #     cid_dir[piece],  
-    #             #      1000)
-                
-    #             test_data.append(result)
-    #             label.append(target)
-    #             original.append(performer)
-    
-    # test_data = np.asarray(test_data)
-    # label = np.asarray(label)      
-    # original = np.asarray(original)      
-    
-    # np.savez(
-    #     SAVE_PATH,
-    #     train_x = None,
-    #     train_y = None,
-    #     valid_x = None,
-    #     valid_y = original,
-    #     test_x = test_data,
-    #     test_y = label
-    # )
-
-    
+    dataProcessor.save()
+    print("\n----------------Finished Processing--------------------")
