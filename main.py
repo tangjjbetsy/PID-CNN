@@ -189,14 +189,13 @@ def evaluate(config):
 def get_args():
     parser = argparse.ArgumentParser(description='')
     
-    parser.add_argument("--model", type=str, default="PID_CNN1D")
-    parser.add_argument("--mode", type=str, default="train", choices=["train", "evaluate"])
-    parser.add_argument("--data_path", type=str, default=None)
-    parser.add_argument("--num_of_features", type=int, default=len(FEATURES_LIST))
-    parser.add_argument("--num_of_performers", type=int, default=6)
+    parser.add_argument("--mode", type=str, default="train", choices=["train", "evaluate"], help="Chose to train or evaluate the model.")
+    parser.add_argument("--data_path", type=str, default=None, help="Path to the processed data file '*.npz'.")
+    parser.add_argument("--num_of_features", type=int, default=len(FEATURES_LIST), help="Number of features used in the experiment")
+    parser.add_argument("--num_of_performers", type=int, default=6, help="Number of performers considered in the experiment")
     parser.add_argument("--cuda_devices", nargs='+', default=["0"], help="CUDA device ids")
-    parser.add_argument("--save_path", type=str, default="evaluation")
-    parser.add_argument("--ckpt_path", type=str, default=None)
+    parser.add_argument("--save_path", type=str, default="evaluation", help="Dictionary to save the evalution report figures. Default to './evaluation/")
+    parser.add_argument("--ckpt_path", type=str, default=None, help="Checkpoint path to continue training or evaluate the model.")
     args = parser.parse_args()
     parser.print_help()
     
@@ -216,7 +215,6 @@ if __name__ == "__main__":
             "data_path": "data/processed_data.npz",
             "ckpt_path": args.ckpt_path,
             "save_path": args.save_path,
-            "model": "PID_CNN1D",
             "num_of_performers": args.num_of_performers,
             "num_of_features": args.num_of_features,
             "kernal_size": [5, 5, 5, 3],

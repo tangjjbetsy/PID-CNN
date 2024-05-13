@@ -14,7 +14,7 @@ An example of preparing the data:
 ```
 python data_preprocess.py --mode align --slice_len 1000 -s -o -S
 ```
-You can select the features that you would like to use in `config.py `. Features that could be computed and use includes:
+You can set the features in `config.py `. Features that could be used:
 ```
 FEATURES_LIST = [
                  'pitch', 
@@ -78,6 +78,30 @@ For training the models, please run the following commands:
 python main.py --mode train
 ```
 
+A full list of options for training (and evaluation):
+
+```
+usage: main.py [-h] [--mode {train,evaluate}] [--data_path DATA_PATH] [--num_of_features NUM_OF_FEATURES] [--num_of_performers NUM_OF_PERFORMERS] [--cuda_devices CUDA_DEVICES [CUDA_DEVICES ...]]
+               [--save_path SAVE_PATH] [--ckpt_path CKPT_PATH]
+
+options:
+  -h, --help            show this help message and exit
+  --mode {train,evaluate}
+                        Chose to train or evaluate the model.
+  --data_path DATA_PATH
+                        Path to the processed data file '*.npz'.
+  --num_of_features NUM_OF_FEATURES
+                        Number of features used in the experiment
+  --num_of_performers NUM_OF_PERFORMERS
+                        Number of performers considered in the experiment
+  --cuda_devices CUDA_DEVICES [CUDA_DEVICES ...]
+                        CUDA device ids
+  --save_path SAVE_PATH
+                        Dictionary to save the evalution report figures. Default to './evaluation/
+  --ckpt_path CKPT_PATH
+                        Checkpoint path to continue training or evaluate the model.
+```
+
 ## Evaluating
 An example of evaluate the model for performance segments of 1000 notes and using 13 features:
 ```
@@ -95,7 +119,7 @@ The MAESTRO dataset does not provide information about performers for each perfo
 Around a hundred audio recordings were found wrongly labeled by the discography given in [MazurkaBL](https://github.com/katkost/MazurkaBL/blob/master/mazurka-discography.txt) during the research progress. By a cover song detection algorithm and manual verification, we created a clean version of the discography, provided [here](https://github.com/tangjjbetsy/PID-CNN/tree/master/data/data_mazurka). 
 
 ### Transcribed Midis
-We applied the [piano transcription algorithm](https://github.com/bytedance/piano_transcription) by Kong et al. to both the datasets (cleaned version). The transicribed midis are available [here](https://drive.google.com/file/d/1NCA90J2-kT6-sOFo6_tYWZDDFTvjOznJ/view?usp=sharing).
+We applied the [piano transcription algorithm](https://github.com/bytedance/piano_transcription) by Kong et al. to the above two datasets (cleaned version). The transicribed midis are available [here](https://drive.google.com/file/d/1NCA90J2-kT6-sOFo6_tYWZDDFTvjOznJ/view?usp=sharing).
 
 ## Citation
 ```
