@@ -109,6 +109,16 @@ python main.py --mode evaluate --ckpt_path checkpoints/model_best_1000.ckpt
 ```
 Pre-trained models with different input lengths and number of features are available [here](https://drive.google.com/file/d/1QFzAN4cUYcbDY9yxJ-sVsB9nhdFTscwr/view?usp=sharing). Checkpoints are named by `model_best_{SEQUENCE_LEN}_{NUM_FEATURES(if it's NOT 13)}.ckpt`.
 
+## Inference
+An example of using the model checkpoint "model_best_1000_7.ckpt" to inference the identity:
+```
+# !!! Remember to modify the FEATURE_LIST in config to match the required features.
+# Prepare the data, save to 'data/inference.npy"
+python data_preprocess.py --mode midi --max_len 1000 --path_to_midi YOUR_PATH_TO_MIDI
+# Inference, load data from "data/inference.npy"
+python main.py --ckpt_path checkpoints/model_best_1000_7.ckpt --mode predict --inference_path data/inference.npy
+```
+
 ## Other Datasets
 In this study, we used piano MIDI performances from the [ATEPP](https://github.com/tangjjbetsy/ATEPP) dataset. However, we have also made attempts on this task with the following datasets:
 

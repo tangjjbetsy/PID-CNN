@@ -8,14 +8,23 @@ FEATURES_LIST = [
                  'ioi', #Inter onset interval
                  'otd', #Offset time duration
                  # <----- Deviation Features ----->
-                 'onset_time_dev',
-                 'offset_time_dev',
-                 'velocity_dev',
-                 'duration_dev',
-                 'ioi_dev',
-                 'otd_dev'
+                #  'onset_time_dev',
+                #  'offset_time_dev',
+                #  'velocity_dev',
+                #  'duration_dev',
+                #  'ioi_dev',
+                #  'otd_dev'
                  ]
 
+PERFROMER = [
+        "Alfred Brendel",
+        "Claudio Arrau",
+        "Daniel Barenboim",
+        "Friedrich Gulda",
+        "Sviatoslav Richter",
+        "Wilhelm Kempff"
+]
+    
 
 ############### PARAMETERS FOR QUANTIZATION ###################
 DEFAULT_LOADING_PROGRAMS = range(128)

@@ -358,7 +358,6 @@ class AlignDataProcessor:
             test_y = self.y[test_index]     
         )
 
-
 class MidiDataProcessor:
     """
     Data processing based on midi files
@@ -784,8 +783,9 @@ def get_args():
     parser.add_argument("--max_len", "-ml", type=int, default=8000, help="Maximum lengths for the input (even using the full performances)")
     parser.add_argument("--slice_len", "-sl", type=int, default=400, help="Segment lengths for slicing")
     parser.add_argument("--mode", type=str, choices=["midi", "align"], default="align", help="Whether to process midi files or alignment files")
-    
-    parser.print_help()
+    parser.add_argument("--path_to_midi", type=str, default=None, help="Path to midi for inference")
+    parser.add_argument("--path_to_alignment", type=str, default=None, help="Path to alignment for inference")
+    # parser.print_help()
     
     args = parser.parse_args()
     
@@ -800,7 +800,12 @@ if __name__ == "__main__":
         dataProcessor = AlignDataProcessor(args)
     else:
         dataProcessor = MidiDataProcessor(args)
-        
-    dataProcessor.process()
-    dataProcessor.save()
+    
+    if args.path_to_midi != None:
+        np.save(f"data/inference.npy", dataProcessor.process_one_piece(args.path_to_midi, 0, args.max_len))
+    elif args.path_to_alignment != None:
+        np.save(f"data/inference.npy", dataProcessor.process_one_piece(args.path_to_alignment, 0, args.max_len))
+    else:
+        dataProcessor.process()
+        dataProcessor.save()
     print("\n----------------Finished Processing--------------------")
